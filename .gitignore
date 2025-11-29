@@ -1,0 +1,10 @@
+xvlog.*
+xsim.dir
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.xpr
+vivado.jou
+vivado.log
+.cxl
