@@ -6,6 +6,7 @@ proc run_sim {project_name top_module tb_module} {
     set sim_dir ./sim
     set xpr_file "$project_name.xpr"
 
+    file delete -force -- {*}[glob *.xpr *.os *.jou *.log *.srcs *.cache *.runs .Xil *.hw *.ip_user_files *.sim *.str *.pb]
     # Check if a project is already open
     if {[string length [current_project -quiet]]} {
         puts "Project already open: [current_project]"
@@ -49,12 +50,12 @@ proc run_sim {project_name top_module tb_module} {
     }
 
     launch_simulation
-    add_wave -r [get_scopes /$tb_module]
-    relaunch_sim
-
-    save_wave_config $sim_dir/$top_module.wcfg
-    write_wave_database $sim_dir/$top_module.wdb
-
+    # add_wave -r [get_scopes /$tb_module]
+    # relaunch_sim
+    #
+    # save_wave_config $sim_dir/$top_module.wcfg
+    # write_wave_database $sim_dir/$top_module.wdb
+    #
     start_gui
     
 }
