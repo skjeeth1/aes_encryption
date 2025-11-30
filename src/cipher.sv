@@ -15,8 +15,8 @@ module sub_bytes #(
 
   genvar i;
   generate
-    for (i = 0; i < 16; i++) begin : gen_sub_block
-      assign s_state[i*8+:8] = aes_sbox(i_state[i*8+:8]);
+    for (i = 16; i > 0; i = i - 1) begin : gen_sub_block
+      assign s_state[(i*8)-1-:8] = aes_sbox(i_state[(i*8)-1-:8]);
     end
   endgenerate
 
@@ -102,32 +102,32 @@ module mix_word #(
 
   genvar i;
   generate
-    for (i = 0; i < 4; i++) begin : gen_o_array_mul
-      assign mul_word[0][(i*8)+:8] = gf_mul(i_word[(i*8)+:8], 1);
-      assign mul_word[1][(i*8)+:8] = gf_mul(i_word[(i*8)+:8], 2);
-      assign mul_word[2][(i*8)+:8] = gf_mul(i_word[(i*8)+:8], 3);
+    for (i = 4; i > 0; i = i - 1) begin : gen_o_array_mul
+      assign mul_word[0][(i*8)-1-:8] = gf_mul(i_word[(i*8)-1-:8], 1);
+      assign mul_word[1][(i*8)-1-:8] = gf_mul(i_word[(i*8)-1-:8], 2);
+      assign mul_word[2][(i*8)-1-:8] = gf_mul(i_word[(i*8)-1-:8], 3);
     end
   endgenerate
 
-  assign o_word[7:0] = mul_word[1][0+:8] ^
-      mul_word[2][8+:8] ^
-      mul_word[0][16+:8] ^
-      mul_word[0][24+:8];
+  assign o_word[(8*4)-1-:8] = mul_word[1][(8*4)-1-:8] ^
+      mul_word[2][(8*3)-1-:8] ^
+      mul_word[0][(8*2)-1-:8] ^
+      mul_word[0][(8*1)-1-:8];
 
-  assign o_word[15:8] = mul_word[0][0+:8] ^
-      mul_word[1][8+:8] ^
-      mul_word[2][16+:8] ^
-      mul_word[0][24+:8];
+  assign o_word[(8*3)-1-:8] = mul_word[0][(8*4)-1-:8] ^
+      mul_word[1][(8*3)-1-:8] ^
+      mul_word[2][(8*2)-1-:8] ^
+      mul_word[0][(8*1)-1-:8];
 
-  assign o_word[23:16] = mul_word[0][0+:8] ^
-      mul_word[0][8+:8] ^
-      mul_word[1][16+:8] ^
-      mul_word[2][24+:8];
+  assign o_word[(8*2)-1-:8] = mul_word[0][(8*4)-1-:8] ^
+      mul_word[0][(8*3)-1-:8] ^
+      mul_word[1][(8*2)-1-:8] ^
+      mul_word[2][(8*1)-1-:8];
 
-  assign o_word[31:24] = mul_word[2][0+:8] ^
-      mul_word[0][8+:8] ^
-      mul_word[0][16+:8] ^
-      mul_word[1][24+:8];
+  assign o_word[(8*1)-1-:8] = mul_word[2][(8*4)-1-:8] ^
+      mul_word[0][(8*3)-1-:8] ^
+      mul_word[0][(8*2)-1-:8] ^
+      mul_word[1][(8*1)-1-:8];
 endmodule
 
 
@@ -145,10 +145,10 @@ module mix_columns #(
   block s_state;
   genvar i;
   generate
-    for (i = 0; i < 4; i = i + 1) begin : gen_mix_columns
+    for (i = 4; i > 0; i = i - 1) begin : gen_mix_columns
       mix_word u_mix_single_column (
-          .i_word(i_state[(i*32)+:32]),
-          .o_word(s_state[(i*32)+:32])
+          .i_word(i_state[(i*32)-1-:32]),
+          .o_word(s_state[(i*32)-1-:32])
       );
     end
   endgenerate
@@ -182,6 +182,7 @@ module add_round_key #(
     if (reset) begin
       o_tx_en <= 0;
       o_state <= 0;
+      o_round_key <= 0;
     end else begin
       o_state <= (i_tx_en) ? i_state ^ i_round_key : 0;
       o_round_key <= (i_tx_en) ? i_round_key : 0;
@@ -196,7 +197,7 @@ module cipher #(
     input logic clock,
     input logic reset,
     input logic i_tx_en,
-    input logic i_state,
+    input block i_state,
     input block i_round_key,
 
     output logic o_tx_en,
@@ -204,21 +205,17 @@ module cipher #(
     output block o_round_key
 );
 
-  logic i_en_g_func;
-  logic i_en_key_expansion;
-  logic i_en_sub_bytes;
-  logic i_en_shift_rows;
-  logic i_en_mix_columns;
-  logic i_en_add_round_key;
+  logic i_tx_en_sub_bytes;
+  logic i_tx_en_shift_rows;
+  logic i_tx_en_mix_columns;
+  logic i_tx_en_add_round_key;
+  logic i_tx_en_key_expansion;
 
-  logic o_en_g_func;
-  logic o_en_key_expansion;
-  logic o_en_sub_bytes;
-  logic o_en_shift_rows;
-  logic o_en_mix_columns;
-  logic o_en_add_round_key;
-
-  logic o_g_func;
+  logic o_tx_en_sub_bytes;
+  logic o_tx_en_shift_rows;
+  logic o_tx_en_mix_columns;
+  logic o_tx_en_add_round_key;
+  logic o_tx_en_key_expansion;
 
   block i_state_sub_bytes;
   block i_state_shift_rows;
@@ -230,66 +227,104 @@ module cipher #(
   block o_state_mix_columns;
   block o_state_add_round_key;
 
-  //
-  // g_func #() u_g_func (
-  //     .clock(clock),
-  //     .reset(reset),
-  //     .i_tx_en(i_en_g_func),
-  //     .i_key(i_round_key),
-  //     .o_tx_en(o_en_g_func),
-  //     .o_g_func(o_g_func)
-  // );
-  //
-  // key_expansion i_key_expansion (
-  //     .clock(clock),
-  //     .reset(reset),
-  //     .i_tx_en(i_en_g_func),
-  //     .i_key(i_round_key),
-  //     .o_tx_en(o_en_g_func),
-  //     .o_g_func(o_g_func)
-  // );
+  block i_key_key_expansion;
+  block o_key_key_expansion;
+  block i_key_add_round_key;
+  block o_key_add_round_key;
+
+  assign i_tx_en_key_expansion = i_tx_en;
+  assign i_tx_en_sub_bytes = i_tx_en;
+  assign i_tx_en_shift_rows = o_tx_en_sub_bytes;
+  assign i_tx_en_mix_columns = o_tx_en_shift_rows;
+  assign i_tx_en_add_round_key = o_tx_en_mix_columns;
+
+  assign i_key_key_expansion = i_round_key;
+  assign i_state_sub_bytes = i_state;
+  assign i_state_shift_rows = o_state_sub_bytes;
+  assign i_state_mix_columns = o_state_shift_rows;
+  assign i_state_add_round_key = o_state_mix_columns;
+
+  logic i_delay_tx_en;
+  logic o_delay_tx_en;
+  block i_delay_key;
+  block o_delay_key;
+
+  assign i_delay_key = o_key_key_expansion;
+  assign i_delay_tx_en = o_tx_en_key_expansion;
+  assign i_key_add_round_key = o_delay_key;
+
+  assign o_tx_en = o_tx_en_add_round_key;
+  assign o_state = o_state_add_round_key;
+  assign o_round_key = o_key_add_round_key;
+
+  key_expansion #(
+      .ROUND(ROUND)
+  ) u_key_expansion (
+      .clock(clock),
+      .reset(reset),
+
+      .i_tx_en    (i_tx_en_key_expansion),
+      .i_round_key(i_key_key_expansion),
+
+      .o_tx_en    (o_tx_en_key_expansion),
+      .o_round_key(o_key_key_expansion)
+  );
 
   sub_bytes u_sub_bytes (
-      .clock  (clock),
-      .reset  (reset),
-      .i_tx_en(i_en_sub_bytes),
+      .clock(clock),
+      .reset(reset),
+
+      .i_tx_en(i_tx_en_sub_bytes),
       .i_state(i_state_sub_bytes),
-      .o_tx_en(o_en_sub_bytes),
+
+      .o_tx_en(o_tx_en_sub_bytes),
       .o_state(o_state_sub_bytes)
   );
 
   shift_rows u_shift_rows (
-      .clock  (clock),
-      .reset  (reset),
-      .i_tx_en(i_en_shift_rows),
+      .clock(clock),
+      .reset(reset),
+
+      .i_tx_en(i_tx_en_shift_rows),
       .i_state(i_state_shift_rows),
-      .o_tx_en(o_en_shift_rows),
+
+      .o_tx_en(o_tx_en_shift_rows),
       .o_state(o_state_shift_rows)
   );
 
   mix_columns u_mix_columns (
-      .clock  (clock),
-      .reset  (reset),
-      .i_tx_en(i_en_mix_columns),
+      .clock(clock),
+      .reset(reset),
+
+      .i_tx_en(i_tx_en_mix_columns),
       .i_state(i_state_mix_columns),
-      .o_tx_en(o_en_mix_columns),
+
+      .o_tx_en(o_tx_en_mix_columns),
       .o_state(o_state_mix_columns)
   );
 
   add_round_key u_add_round_key (
-      .clock  (clock),
-      .reset  (reset),
-      .i_tx_en(i_en_add_round_key),
+      .clock(clock),
+      .reset(reset),
+
+      .i_tx_en(i_tx_en_add_round_key),
       .i_state(i_state_add_round_key),
-      .o_tx_en(o_en_add_round_key),
-      .o_state(o_state_add_round_key)
+      .i_round_key(i_key_add_round_key),
+
+      .o_tx_en(o_tx_en_add_round_key),
+      .o_state(o_state_add_round_key),
+      .o_round_key(o_key_add_round_key)
   );
 
-  assign i_en_sub_bytes = i_tx_en;
-  assign i_en_shift_rows = o_en_sub_bytes;
-  assign i_en_mix_columns = o_en_shift_rows;
-  assign i_en_add_round_key = o_en_mix_columns;
-
-  assign o_tx_en = o_en_add_round_key;
+  // Add one delay to key expansion output
+  always_ff @(posedge clock) begin
+    if (reset) begin
+      o_delay_tx_en <= 0;
+      o_delay_key   <= 0;
+    end else begin
+      o_delay_key   <= i_delay_key;
+      o_delay_tx_en <= i_delay_tx_en;
+    end
+  end
 
 endmodule

@@ -6,7 +6,7 @@ module key_expansion #(
     input logic clock,
     input logic reset,
     input logic i_tx_en,
-    input block i_key,
+    input block i_round_key,
 
     output logic o_tx_en,
     output block o_round_key
@@ -21,7 +21,7 @@ module key_expansion #(
   word  o_g_func;
 
   assign i_en_g_func  = i_tx_en;
-  assign i_key_g_func = i_key;
+  assign i_key_g_func = i_round_key;
 
   g_func #(
       .ROUND(ROUND)
@@ -36,10 +36,10 @@ module key_expansion #(
   );
 
   always_comb begin
-    round_words[0] = o_key_g_func[127:96] ^ o_g_func;
-    round_words[1] = o_key_g_func[95:64] ^ round_words[0];
-    round_words[2] = o_key_g_func[63:32] ^ round_words[1];
-    round_words[3] = o_key_g_func[31:0] ^ round_words[2];
+    round_words[0] = o_key_g_func[(32*4)-1-:32] ^ o_g_func;
+    round_words[1] = o_key_g_func[(32*3)-1-:32] ^ round_words[0];
+    round_words[2] = o_key_g_func[(32*2)-1-:32] ^ round_words[1];
+    round_words[3] = o_key_g_func[(32*1)-1-:32] ^ round_words[2];
   end
 
   always_ff @(posedge clock) begin
@@ -48,10 +48,10 @@ module key_expansion #(
       o_round_key <= 0;
     end else begin
       if (o_en_g_func) begin
-        o_round_key[127:96] <= round_words[0];
-        o_round_key[95:64]  <= round_words[1];
-        o_round_key[63:32]  <= round_words[2];
-        o_round_key[31:0]   <= round_words[3];
+        o_round_key[(32*4)-1-:32] <= round_words[0];
+        o_round_key[(32*3)-1-:32] <= round_words[1];
+        o_round_key[(32*2)-1-:32] <= round_words[2];
+        o_round_key[(32*1)-1-:32] <= round_words[3];
       end else begin
         o_round_key <= 0;
       end
@@ -78,13 +78,13 @@ module g_func #(
   logic [7:0] g_func_word[4];
 
   word i_key_col;
-  assign i_key_col = i_key[31:0];
+  assign i_key_col = i_key[31-:32];
 
   always_comb begin
-    g_func_word[0] = aes_sbox(i_key_col[23:16]) ^ round_const(ROUND);
-    g_func_word[1] = aes_sbox(i_key_col[15:8]);
-    g_func_word[2] = aes_sbox(i_key_col[7:0]);
-    g_func_word[3] = aes_sbox(i_key_col[31:24]);
+    g_func_word[0] = aes_sbox(i_key_col[(8*3)-1-:8]) ^ round_const(ROUND);
+    g_func_word[1] = aes_sbox(i_key_col[(8*2)-1-:8]);  //2
+    g_func_word[2] = aes_sbox(i_key_col[(8*1)-1-:8]);  //1
+    g_func_word[3] = aes_sbox(i_key_col[(8*4)-1-:8]);  //4
   end
 
   always_ff @(posedge clock) begin
@@ -94,10 +94,7 @@ module g_func #(
       o_g_func <= 0;
     end else begin
       if (i_tx_en) begin
-        o_g_func <= (ROUND != 0) ?
-        {g_func_word[0], g_func_word[1], g_func_word[2], g_func_word[3]} :
-        i_key_col;
-
+        o_g_func <= {g_func_word[0], g_func_word[1], g_func_word[2], g_func_word[3]};
         o_key <= i_key;
       end else begin
         o_g_func <= 0;
