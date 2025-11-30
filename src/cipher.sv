@@ -132,6 +132,7 @@ endmodule
 
 
 module mix_columns #(
+    parameter int ROUND
 ) (
     input logic clock,
     input logic reset,
@@ -158,7 +159,7 @@ module mix_columns #(
       o_tx_en <= 0;
       o_state <= 0;
     end else begin
-      o_state <= (i_tx_en) ? s_state : 0;
+      o_state <= (i_tx_en) ? ((ROUND == 10) ? i_state : s_state) : 0;
       o_tx_en <= i_tx_en;
     end
   end
@@ -238,7 +239,6 @@ module cipher #(
   assign i_tx_en_mix_columns = o_tx_en_shift_rows;
   assign i_tx_en_add_round_key = o_tx_en_mix_columns;
 
-  assign i_key_key_expansion = i_round_key;
   assign i_state_sub_bytes = i_state;
   assign i_state_shift_rows = o_state_sub_bytes;
   assign i_state_mix_columns = o_state_shift_rows;
@@ -249,6 +249,7 @@ module cipher #(
   block i_delay_key;
   block o_delay_key;
 
+  assign i_key_key_expansion = i_round_key;
   assign i_delay_key = o_key_key_expansion;
   assign i_delay_tx_en = o_tx_en_key_expansion;
   assign i_key_add_round_key = o_delay_key;
@@ -292,7 +293,9 @@ module cipher #(
       .o_state(o_state_shift_rows)
   );
 
-  mix_columns u_mix_columns (
+  mix_columns #(
+      .ROUND(ROUND)
+  ) u_mix_columns (
       .clock(clock),
       .reset(reset),
 
