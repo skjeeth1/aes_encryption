@@ -9,16 +9,25 @@ This project implements an AES-128 encryption core in SystemVerilog.
 
 ## Usage
 1. Open vivado console in project directory:
-``` vivado -mode tcl ```
+``` 
+vivado -mode tcl 
+```
 2. Source the sim.tcl file in scripts/
-``` source scripts/sim.tcl```
+```
+source scripts/sim.tcl
+```
 3. Run Simulation:
-``` run_sim %Project_Name% %Top_Module% %Testbench_Module% ```
+```
+run_sim %Project_Name% %Top_Module% %Testbench_Module% 
+```
 4. (Optional) Launch gui for waveform viewer:
-``` start_gui ```
+```
+start_gui 
+```
 5. (Optional) Running sim may polute the directory. Run this to clean unwanted files.
-``` source clear_dir.tcl ```
-
+```
+source clear_dir.tcl 
+```
 
 ## TO-DO:
 - Implement the design.
