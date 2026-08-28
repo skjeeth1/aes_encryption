@@ -1,6 +1,6 @@
 import def_pkg::*;
 
-module aes #(
+module aes_128 #(
     parameter int NUM_ROUNDS = 11
 ) (
     input logic clock,

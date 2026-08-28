@@ -1,0 +1,7 @@
+[project]
+work_dir = "build"
+
+[[fpga]]
+name = "custom"
+fpga_part = "xc7a200tfbg484-1"
+
