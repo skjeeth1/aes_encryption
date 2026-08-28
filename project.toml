@@ -5,3 +5,12 @@ work_dir = "build"
 name = "custom"
 fpga_part = "xc7a200tfbg484-1"
 
+[[design]]
+name = "aes_128"
+sources = ["src/rtl/src/*.sv"]
+
+[[synth]]
+design = "aes_128"
+synth_mode = "out_of_context"
+synth_report_timing_summary = true
+synth_report_utilization = true

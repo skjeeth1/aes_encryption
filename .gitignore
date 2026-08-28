@@ -1,12 +1,11 @@
-xvlog.*
-xsim.dir
-*.cache/
-*.hw/
-*.ip_user_files/
-*.sim/
-*.xpr
-vivado.jou
-vivado.log
-.cxl
-vivado_*
-.Xil/
+# Vivado cache directories
+xsim.dir/
+xvlog*
+
+# Project build specific
+build/
+project.lock
+compile_commands.json
+
+# Python deps
+.venv/
