@@ -1,20 +1,21 @@
 import def_pkg::*;
 
-function automatic block key_expansion_comb(input block i_round_key, input int round_num);
+
+function automatic block key_expansion(input block i_round_key, input int round_num);
   word w0, w1, w2, w3;
   word g;
   begin
-    g = g_func_comb(i_round_key[31:0], round_num);
+    g = g_func(i_round_key[31:0], round_num);
     w0 = i_round_key[127:96] ^ g;
     w1 = i_round_key[95:64] ^ w0;
     w2 = i_round_key[63:32] ^ w1;
     w3 = i_round_key[31:0] ^ w2;
-    key_expansion_comb = {w0, w1, w2, w3};
+    key_expansion = {w0, w1, w2, w3};
   end
 endfunction
 
 
-function automatic word g_func_comb(input word key_col, input int round_num);
+function automatic word g_func(input word key_col, input int round_num);
   logic [7:0] b0, b1, b2, b3;
   begin
     b0 = key_col[31:24];
@@ -22,7 +23,7 @@ function automatic word g_func_comb(input word key_col, input int round_num);
     b2 = key_col[15:8];
     b3 = key_col[7:0];
 
-    g_func_comb = {aes_sbox(b1) ^ round_const(round_num), aes_sbox(b2), aes_sbox(b3), aes_sbox(b0)};
+    g_func = {aes_sbox(b1) ^ round_const(round_num), aes_sbox(b2), aes_sbox(b3), aes_sbox(b0)};
   end
 endfunction
 
