@@ -5,12 +5,41 @@ work_dir = "build"
 name = "custom"
 fpga_part = "xc7a200tfbg484-1"
 
+# -----------------------------------------------
+
+[[simulation]]
+name = "key_expansion_tb"
+sources = [
+    "src/rtl/def.sv",
+    "src/sim/key_expansion_tb.sv"
+]
+
+# -----------------------------------------------
+
 [[design]]
 name = "aes_128"
-sources = ["src/rtl/src/*.sv"]
+sources = ["src/rtl/*.sv"]
+
+[[simulation]]
+name = "aes_tb"
+sources = [
+    "src/rtl/def.sv", 
+    "src/rtl/cipher.sv", 
+    "src/rtl/aes.sv",
+    "src/sim/aes_tb.sv"
+]
+
+# ----------------------------------------------
 
 [[synth]]
 design = "aes_128"
-synth_mode = "out_of_context"
+# synth_mode = "out_of_context"
+constraints = ["src/constrs/constraints.xdc"]
 synth_report_timing_summary = true
 synth_report_utilization = true
+run_opt = false
+run_place = false
+run_phys_opt = false
+run_route = false
+synth_flatten_hierarchy = 'none'
+bitstream = false

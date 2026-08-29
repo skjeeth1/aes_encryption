@@ -3,24 +3,6 @@ import def_pkg::*;
 
 module key_expansion_tb ();
 
-  logic clock;
-  logic reset;
-  logic i_tx_en;
-  block i_key;
-
-  logic o_tx_en;
-  block o_round_key;
-
-  initial begin
-    clock   = 0;
-    reset   = 1;
-    i_tx_en = 1;
-
-    #10 reset = 0;
-  end
-
-  always #10 clock = ~clock;
-
   block expected_keys[11] = {
     128'h5468617473206D79204B756E67204675,
     128'hE232FCF191129188B159E4E6D679A293,
@@ -35,32 +17,27 @@ module key_expansion_tb ();
     128'h28FDDEF86DA4244ACCC0A4FE3B316F26
   };
 
-  localparam int ROUND = 6;
+  block calc_key;
+  int errors;
 
-  assign i_key = expected_keys[ROUND-1];
+  initial begin
+    errors = 0;
 
-  key_expansion #(
-      .ROUND(ROUND)
-  ) u_key_expansion (
-      .clock      (clock),
-      .reset      (reset),
-      .i_tx_en    (i_tx_en),
-      .i_round_key(i_key),
-      .o_tx_en    (o_tx_en),
-      .o_round_key(o_round_key)
-  );
+    for (int round = 1; round <= 10; round++) begin
+      calc_key = key_expansion(expected_keys[round-1], round);
 
-  always_ff @(posedge clock) begin
-    if (o_tx_en) begin
-      if (o_round_key != expected_keys[ROUND]) begin
-        $fatal(1, "Key Mismatch! Calculated round:%0d. Expected: %h, Got: %h", ROUND,
-               expected_keys[ROUND], o_round_key);
+      if (calc_key !== expected_keys[round]) begin
+        $display("FAIL: Round %0d. Expected: %h, Got: %h", round, expected_keys[round], calc_key);
+        errors++;
       end else begin
-        $display("SUCCESS: Round Key %0d verified.", ROUND);
+        $display("SUCCESS: Round Key %0d verified.", round);
       end
-      i_tx_en <= 0;
     end
+
+    if (errors == 0) $display("SUCCESS! All round keys match!");
+    else $fatal(1, "FAIL! %0d round key(s) mismatched", errors);
+
+    $finish;
   end
 
-  // Failed rounds: 6,7,
 endmodule

@@ -12,13 +12,13 @@ module aes_tb ();
   logic o_en;
   block enc_val;
 
-  aes u_aes (
-      .clock(clock),
-      .reset(reset),
-      .i_en(i_en),
-      .in_val(in_val),
-      .key(key),
-      .o_en(o_en),
+  aes_128 u_aes (
+      .clock  (clock),
+      .reset  (reset),
+      .i_en   (i_en),
+      .in_val (in_val),
+      .key    (key),
+      .o_en   (o_en),
       .enc_val(enc_val)
   );
 
@@ -33,25 +33,43 @@ module aes_tb ();
     #10 i_en = 0;
   end
 
-  assign key = 128'h2B7E151628AED2A6ABF7158809CF4F3C;
-
+  assign key    = 128'h2B7E151628AED2A6ABF7158809CF4F3C;
   assign in_val = 128'hAE2D8A571E03AC9C9EB76FAC45AF8E51;
   block expct_val = 128'hF5D3D58503B9699DE785895A96FDBAAF;
 
   int   COUNTER;
+  int   LATENCY_START;
 
   always_ff @(posedge clock) begin
-    if (reset) COUNTER <= 0;
-    else begin
+    if (reset) begin
+      COUNTER <= 0;
+    end else begin
       COUNTER <= COUNTER + 1;
+
+      if (i_en) LATENCY_START <= COUNTER;
+
       if (o_en) begin
-        $display("Output value = %h", enc_val);
-        $display("Expected value = %h", expct_val);
-        $display("Clock pulses = %d", COUNTER);
-        if (enc_val == expct_val) $display("SUCCESS! Values match!");
-        else $fatal("FAIL! Keys don't match");
+        $display("Output value    = %h", enc_val);
+        $display("Expected value  = %h", expct_val);
+        $display("Clock pulses    = %0d", COUNTER);
+        $display("Round latency   = %0d cycles", COUNTER - LATENCY_START);
+
+        if (enc_val !== expct_val) $fatal(1, "FAIL! Encrypted output doesn't match expected value");
+        else if ((COUNTER - LATENCY_START) != 11)
+          $display(
+              "WARNING: Expected 11-cycle latency (1 load + 10 rounds), got %0d",
+              COUNTER - LATENCY_START
+          );
+        else $display("SUCCESS! Value and latency match!");
+
+        $finish;
       end
     end
+  end
+
+  initial begin
+    #1000;
+    $fatal(1, "TIMEOUT: o_en never asserted");
   end
 
 endmodule
